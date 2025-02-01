@@ -1,0 +1,99 @@
+---
+title: "Titanic"
+output:
+  html_document:
+    df_print: paged
+---
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+options(scpien = 999)
+```
+
+```{r, include = FALSE}
+paquetes <- c('dplyr',
+              'caTools',
+              'party')
+              
+instalados <- paquetes %in% installed.packages()
+
+if(sum(instalados == FALSE) > 0) {
+  install.packages(paquetes[!instalados])
+}
+
+lapply(paquetes, require, character.only = TRUE)
+```
+
+```{r, include = FALSE}
+library("dplyr") #manipular data
+library("caTools") #para dividir los datos en train y test con split()
+library("party") #para usar decision tree (función ctree)
+```
+
+```{r eval = TRUE, echo = TRUE, include = FALSE}
+setwd("C:/Users/Andres/OneDrive/Documents/Andrés/DA/R/Proyectos/Titanic")
+```
+
+```{r eval = TRUE, echo = TRUE, include = FALSE}
+titanic <- read.csv("C:/Users/Andres/OneDrive/Documents/Andrés/DA/R/Proyectos/Titanic/Titanic_train_and_test.csv", head = TRUE, sep = ",",)
+```
+
+Los paquetes usados para este proyecto son: 'dplyr', 'caTools' y 'party'.
+
+```{r}
+#Vemos las variables presentes
+head(titanic, 5)
+```
+
+```{r}
+#A continuación eliminaré las columnas que empiezan con nombre zero
+cols <- colnames(titanic)
+zero <- grep('zero', cols)
+df <- titanic[ ,-zero]
+head(df,5)
+```
+
+A continuación veremos con summary un resumen de las varibales del df
+
+```{r}
+summary(df)
+```
+
+```{r}
+#Eliminaré la columna passangerid
+df <- select(df, -c(Passengerid))
+head(df)
+```
+
+Ahora voy a dividir el df en observaciones de entrenamiento y prueba, con la función .split() del paquete caTools
+
+```{r}
+muestra <- sample.split(df, SplitRatio = 0.8)
+train <- subset(df, muestra == TRUE)
+test <- subset(df, muestra == FALSE)
+```
+
+Creamos el modelo y vemos gráficamente cómo el modelo determina las probabilidades
+
+```{r}
+modelo_train <- ctree(X2urvived ~ ., train)
+plot(modelo_train)
+```
+
+Una vez que el modelo le aplicamos los datos de entrenamiento, procedemos a aplicar el data set de test
+
+```{r}
+modelo_prediccion <- predict(modelo_train, test)
+```
+
+Ahora crearemos la matriz de confusión (accuracy), en la cual comparamos errores. Es decir, en los ejes superiores tenemos lo que se predice, y en el eje de la izquierda tenemos lo real. 
+
+```{r}
+m_conf <- table(test$X2urvived, round(modelo_prediccion))
+```
+
+Calculamos accuracy
+
+```{r}
+acc <- round((sum(diag(m_conf))/sum(m_conf))*100,2)
+print(paste("Precisión del modelo = %", acc))
+```
